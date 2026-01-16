@@ -104,7 +104,7 @@ function getDaysInGregorianMonth(month, year) {
 function isUmalquraSupported() {
     try {
         // Some engines throw RangeError if unsupported
-        new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { timeZone: "UTC" }).format(new Date());
+        new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", { timeZone: "UTC" }).format(new Date());
         return true;
     } catch {
         return false;
@@ -112,8 +112,8 @@ function isUmalquraSupported() {
 }
 
 function getHijriPartsFromGregorian(gDate) {
-    // Returns hijri year/month/day using Umm al-Qura
-    const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+    // Returns hijri year/month/day using Umm al-Qura with Latin digits to avoid NaN in parseInt
+    const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", {
         year: "numeric",
         month: "numeric",
         day: "numeric",
@@ -124,6 +124,7 @@ function getHijriPartsFromGregorian(gDate) {
     const y = parseInt(parts.find(p => p.type === "year").value, 10);
     const m = parseInt(parts.find(p => p.type === "month").value, 10);
     const d = parseInt(parts.find(p => p.type === "day").value, 10);
+
     return { y, m, d };
 }
 
@@ -276,3 +277,4 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
