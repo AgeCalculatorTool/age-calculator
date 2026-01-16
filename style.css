@@ -129,3 +129,45 @@ button {
 }
 
 
+#result {
+    margin-top: 18px;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.details {
+    margin-top: 14px;
+    text-align: start;
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.details .details-header {
+    background: #e9f7ff;
+    padding: 10px 12px;
+    font-size: 14px;
+}
+
+.details table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.details td {
+    padding: 10px 12px;
+    border-top: 1px solid #eee;
+    font-size: 14px;
+}
+
+.details td.key {
+    width: 42%;
+    color: #333;
+    font-weight: 600;
+}
+
+.details td.val {
+    width: 58%;
+    color: #111;
+}
+
