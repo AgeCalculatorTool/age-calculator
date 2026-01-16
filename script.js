@@ -1,7 +1,6 @@
 let currentCalendar = "gregorian"; // default
 
 window.onload = function () {
-    // Detect calendar switch only if it exists (Arabic page)
     const radios = document.querySelectorAll('input[name="calendarType"]');
     if (radios.length) {
         radios.forEach(r => {
@@ -23,10 +22,49 @@ function initSelectsForCurrentCalendar(resetToDefaults) {
     fillMonths(resetToDefaults);
     updateDays();
 
-    // Clear result when switching calendar for clarity
     const result = document.getElementById("result");
+    const details = document.getElementById("details");
     if (result) result.innerText = "";
+    if (details) { details.style.display = "none"; details.innerHTML = ""; }
 }
+
+/* =============================
+   Month names
+   ============================= */
+
+const GREG_MONTHS_EN = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+];
+
+const GREG_MONTHS_AR = [
+    "يناير","فبراير","مارس","أبريل","مايو","يونيو",
+    "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"
+];
+
+// Hijri month names (Arabic)
+const HIJRI_MONTHS_AR = [
+    "محرم","صفر","ربيع الأول","ربيع الآخر",
+    "جمادى الأولى","جمادى الآخرة","رجب","شعبان",
+    "رمضان","شوال","ذو القعدة","ذو الحجة"
+];
+
+function getMonthLabel(monthNumber) {
+    const lang = document.documentElement.lang;
+
+    if (currentCalendar === "hijri") {
+        // Arabic only in your plan, but keep safe:
+        const name = (lang === "ar") ? HIJRI_MONTHS_AR[monthNumber - 1] : String(monthNumber);
+        return `${monthNumber} - ${name}`;
+    } else {
+        const name = (lang === "ar") ? GREG_MONTHS_AR[monthNumber - 1] : GREG_MONTHS_EN[monthNumber - 1];
+        return `${monthNumber} - ${name}`;
+    }
+}
+
+/* =============================
+   Select fills
+   ============================= */
 
 function fillYears(resetToDefaults) {
     const yearSel = document.getElementById("year");
@@ -36,7 +74,6 @@ function fillYears(resetToDefaults) {
 
     if (currentCalendar === "hijri") {
         if (!isUmalquraSupported()) {
-            // Fallback message (Arabic only realistically)
             document.getElementById("result").innerText =
                 "متصفحك لا يدعم تقويم أم القرى. يُرجى استخدام Chrome/Edge حديث.";
             currentCalendar = "gregorian";
@@ -53,7 +90,6 @@ function fillYears(resetToDefaults) {
         const h = getHijriPartsFromGregorian(today);
         const currentHijriYear = h.y;
 
-        // نطاق معقول للهجري
         for (let y = currentHijriYear; y >= 1300; y--) {
             yearSel.innerHTML += `<option value="${y}">${y}</option>`;
         }
@@ -66,7 +102,7 @@ function fillMonths(resetToDefaults) {
     monthSel.innerHTML = "";
 
     for (let m = 1; m <= 12; m++) {
-        monthSel.innerHTML += `<option value="${m}">${m}</option>`;
+        monthSel.innerHTML += `<option value="${m}">${getMonthLabel(m)}</option>`;
     }
 
     if (resetToDefaults) monthSel.value = "1";
@@ -88,22 +124,19 @@ function updateDays() {
         daySel.innerHTML += `<option value="${d}">${d}</option>`;
     }
 
-    // Preserve previous selection if still valid
     daySel.value = String(Math.min(prev, dim));
 }
 
 function getDaysInGregorianMonth(month, year) {
-    // month: 1..12
     return new Date(year, month, 0).getDate();
 }
 
 /* =============================
-   Umm al-Qura (Hijri) helpers
+   Umm al-Qura (Hijri) via Intl
    ============================= */
 
 function isUmalquraSupported() {
     try {
-        // Some engines throw RangeError if unsupported
         new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", { timeZone: "UTC" }).format(new Date());
         return true;
     } catch {
@@ -112,7 +145,6 @@ function isUmalquraSupported() {
 }
 
 function getHijriPartsFromGregorian(gDate) {
-    // Returns hijri year/month/day using Umm al-Qura with Latin digits to avoid NaN in parseInt
     const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", {
         year: "numeric",
         month: "numeric",
@@ -129,30 +161,24 @@ function getHijriPartsFromGregorian(gDate) {
 }
 
 function hijriToGregorian_Umalqura(hy, hm, hd) {
-    // Exact match search using Umm al-Qura:
-    // We search around an estimated Gregorian year for the exact Hijri date.
-    // This is not "approximation"; it is matching the official calendar output.
-
     if (!isUmalquraSupported()) return null;
 
-    const estimateGy = hy + 579; // rough mapping: 1447~2025/26
-    const start = new Date(Date.UTC(estimateGy - 1, 0, 1)); // Jan 1 of previous year UTC
+    const estimateGy = hy + 579;
+    const start = new Date(Date.UTC(estimateGy - 1, 0, 1));
 
-    // Search within 900 days (covers drift comfortably)
     for (let i = 0; i < 900; i++) {
         const candidate = new Date(start.getTime() + i * 86400000);
         const h = getHijriPartsFromGregorian(candidate);
         if (h.y === hy && h.m === hm && h.d === hd) {
-            return candidate;
+            return candidate; // UTC date
         }
     }
-    return null; // not found (shouldn't happen in normal ranges)
+    return null;
 }
 
 function getDaysInHijriMonth_Umalqura(hm, hy) {
-    // Days in Hijri month = difference between (1st of this month) and (1st of next month)
     const g1 = hijriToGregorian_Umalqura(hy, hm, 1);
-    if (!g1) return 30; // fallback
+    if (!g1) return 30;
 
     let nextM = hm + 1;
     let nextY = hy;
@@ -161,12 +187,44 @@ function getDaysInHijriMonth_Umalqura(hm, hy) {
     const g2 = hijriToGregorian_Umalqura(nextY, nextM, 1);
     if (!g2) return 30;
 
-    const diffDays = Math.round((g2.getTime() - g1.getTime()) / 86400000);
-    return diffDays;
+    return Math.round((g2.getTime() - g1.getTime()) / 86400000);
 }
 
 /* =============================
-   Age calculation
+   Formatting helpers
+   ============================= */
+
+function formatGregorian(dateObj) {
+    const lang = document.documentElement.lang;
+    const locale = (lang === "ar") ? "ar" : "en";
+    return new Intl.DateTimeFormat(locale, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    }).format(dateObj);
+}
+
+function formatHijriFromGregorian(dateObj) {
+    // Uses Umm al-Qura calendar for display (Arabic output)
+    // We show it in Arabic because feature is in Arabic page primarily.
+    const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+    return fmt.format(dateObj);
+}
+
+function daysBetweenDatesUTC(dateA, dateB) {
+    const a = Date.UTC(dateA.getFullYear(), dateA.getMonth(), dateA.getDate());
+    const b = Date.UTC(dateB.getFullYear(), dateB.getMonth(), dateB.getDate());
+    return Math.round((b - a) / 86400000);
+}
+
+/* =============================
+   Age calculation + extra details
    ============================= */
 
 function calculateAge() {
@@ -175,61 +233,61 @@ function calculateAge() {
     const y = parseInt(document.getElementById("year").value, 10);
 
     const result = document.getElementById("result");
+    const details = document.getElementById("details");
     const lang = document.documentElement.lang;
 
     const text = {
-        ar: { y: "سنة", m: "شهر", d: "يوم" },
-        en: { y: "years", m: "months", d: "days" }
+        ar: {
+            years: "سنة", months: "شهر", days: "يوم",
+            detailsHeader: "معلومات إضافية",
+            birthWeekday: "يوم الميلاد",
+            birthGreg: "تاريخ الميلاد (ميلادي)",
+            birthHijri: "تاريخ الميلاد (هجري - أم القرى)",
+            nextAnniv: "المتبقي لذكرى الميلاد القادمة",
+            annivDate: "تاريخ الذكرى القادمة",
+        },
+        en: {
+            years: "years", months: "months", days: "days",
+            detailsHeader: "Additional details",
+            birthWeekday: "Birth weekday",
+            birthGreg: "Birthdate (Gregorian)",
+            birthHijri: "Birthdate (Hijri - Umm al-Qura)",
+            nextAnniv: "Days until next birthday",
+            annivDate: "Next birthday date",
+        }
     };
 
-    // Always compute using real time (Gregorian Date objects)
+    // 1) Convert selected date to a real Gregorian Date object
     let birthGregorian = null;
 
     if (currentCalendar === "gregorian") {
         birthGregorian = new Date(y, m - 1, d);
     } else {
-        const g = hijriToGregorian_Umalqura(y, m, d);
-        if (!g) {
+        const gUTC = hijriToGregorian_Umalqura(y, m, d);
+        if (!gUTC) {
             result.innerText = (lang === "ar")
-                ? "تعذر تحويل التاريخ الهجري. يُرجى المحاولة مرة أخرى."
-                : "Could not convert Hijri date. Please try again.";
+                ? "تعذر تحويل التاريخ الهجري."
+                : "Could not convert Hijri date.";
+            if (details) { details.style.display = "none"; details.innerHTML = ""; }
             return;
         }
-        // Convert UTC date to local Date for age math
-        birthGregorian = new Date(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate());
+        birthGregorian = new Date(gUTC.getUTCFullYear(), gUTC.getUTCMonth(), gUTC.getUTCDate());
     }
 
-    // Basic validation: invalid date (should not happen due to selects)
     if (isNaN(birthGregorian.getTime())) {
-        result.innerText = (lang === "ar")
-            ? "تاريخ غير صالح."
-            : "Invalid date.";
+        result.innerText = (lang === "ar") ? "تاريخ غير صالح." : "Invalid date.";
+        if (details) { details.style.display = "none"; details.innerHTML = ""; }
         return;
     }
 
     const today = new Date();
-
-    // If user selected Hijri, show age in Hijri units (Umm al-Qura).
-    // If Gregorian, show age in Gregorian units.
-    if (currentCalendar === "hijri") {
-        if (!isUmalquraSupported()) {
-            result.innerText = "متصفحك لا يدعم تقويم أم القرى. يُرجى استخدام Chrome/Edge حديث.";
-            return;
-        }
-
-        const todayH = getHijriPartsFromGregorian(new Date(Date.UTC(
-            today.getFullYear(), today.getMonth(), today.getDate()
-        )));
-
-        const birthH = { y, m, d };
-
-        const ageH = diffHijriDates_Umalqura(birthH, todayH);
-        result.innerText =
-            `${ageH.years} ${text[lang].y}، ${ageH.months} ${text[lang].m}، ${ageH.days} ${text[lang].d}`;
+    if (birthGregorian > today) {
+        result.innerText = (lang === "ar") ? "تاريخ الميلاد في المستقبل." : "Birthdate is in the future.";
+        if (details) { details.style.display = "none"; details.innerHTML = ""; }
         return;
     }
 
-    // Gregorian age (existing logic)
+    // 2) Calculate age (Gregorian parts)
     let years = today.getFullYear() - birthGregorian.getFullYear();
     let months = today.getMonth() - birthGregorian.getMonth();
     let days = today.getDate() - birthGregorian.getDate();
@@ -245,19 +303,103 @@ function calculateAge() {
         months += 12;
     }
 
-    result.innerText =
-        `${years} ${text[lang].y}، ${months} ${text[lang].m}، ${days} ${text[lang].d}`;
+    // If Hijri mode: show Hijri age parts (Umm al-Qura) in result line
+    if (currentCalendar === "hijri") {
+        if (!isUmalquraSupported()) {
+            result.innerText = "متصفحك لا يدعم تقويم أم القرى. يُرجى استخدام Chrome/Edge حديث.";
+            if (details) { details.style.display = "none"; details.innerHTML = ""; }
+            return;
+        }
+
+        const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+        const todayH = getHijriPartsFromGregorian(todayUTC);
+        const birthH = { y, m, d };
+        const ageH = diffHijriDates_Umalqura(birthH, todayH);
+
+        result.innerText =
+            `${ageH.years} ${text[lang].years}، ${ageH.months} ${text[lang].months}، ${ageH.days} ${text[lang].days}`;
+    } else {
+        result.innerText =
+            `${years} ${text[lang].years}، ${months} ${text[lang].months}، ${days} ${text[lang].days}`;
+    }
+
+    // 3) Extra details
+    if (details) {
+        const birthWeekdayStr = formatGregorian(birthGregorian).split("،")[0]; // weekday part
+        const birthGregStr = formatGregorian(birthGregorian);
+        const birthHijriStr = formatHijriFromGregorian(birthGregorian);
+
+        // Next anniversary depending on selected calendar
+        let nextAnnivDate = null;
+
+        if (currentCalendar === "gregorian") {
+            // next gregorian birthday
+            const targetYear = today.getFullYear();
+            let cand = new Date(targetYear, birthGregorian.getMonth(), birthGregorian.getDate());
+
+            // Handle Feb 29 birthdays in non-leap years -> use Feb 28 (choice) or Mar 1. We'll choose Feb 28.
+            if (birthGregorian.getMonth() === 1 && birthGregorian.getDate() === 29 && getDaysInGregorianMonth(2, targetYear) === 28) {
+                cand = new Date(targetYear, 1, 28);
+            }
+
+            if (cand < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+                const y2 = targetYear + 1;
+                cand = new Date(y2, birthGregorian.getMonth(), birthGregorian.getDate());
+                if (birthGregorian.getMonth() === 1 && birthGregorian.getDate() === 29 && getDaysInGregorianMonth(2, y2) === 28) {
+                    cand = new Date(y2, 1, 28);
+                }
+            }
+            nextAnnivDate = cand;
+        } else {
+            // next hijri anniversary: same hijri month/day in current hijri year (or next)
+            const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+            const todayH = getHijriPartsFromGregorian(todayUTC);
+
+            let candHY = todayH.y;
+            let candUTC = hijriToGregorian_Umalqura(candHY, m, d);
+
+            // if not found (rare) or already passed, go next hijri year
+            if (!candUTC || new Date(candUTC.getUTCFullYear(), candUTC.getUTCMonth(), candUTC.getUTCDate()) < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+                candHY = todayH.y + 1;
+                candUTC = hijriToGregorian_Umalqura(candHY, m, d);
+            }
+
+            if (candUTC) {
+                nextAnnivDate = new Date(candUTC.getUTCFullYear(), candUTC.getUTCMonth(), candUTC.getUTCDate());
+            }
+        }
+
+        let daysLeft = "";
+        let annivStr = "";
+        if (nextAnnivDate) {
+            daysLeft = String(daysBetweenDatesUTC(today, nextAnnivDate));
+            annivStr = formatGregorian(nextAnnivDate);
+        } else {
+            daysLeft = (lang === "ar") ? "غير متاح" : "N/A";
+            annivStr = (lang === "ar") ? "غير متاح" : "N/A";
+        }
+
+        details.innerHTML = `
+          <div class="details-header">${text[lang].detailsHeader}</div>
+          <table>
+            <tr><td class="key">${text[lang].birthWeekday}</td><td class="val">${birthWeekdayStr}</td></tr>
+            <tr><td class="key">${text[lang].birthGreg}</td><td class="val">${birthGregStr}</td></tr>
+            <tr><td class="key">${text[lang].birthHijri}</td><td class="val">${birthHijriStr}</td></tr>
+            <tr><td class="key">${text[lang].nextAnniv}</td><td class="val">${daysLeft}</td></tr>
+            <tr><td class="key">${text[lang].annivDate}</td><td class="val">${annivStr}</td></tr>
+          </table>
+        `;
+        details.style.display = "block";
+    }
 }
 
 function diffHijriDates_Umalqura(birthH, todayH) {
-    // Compute Hijri age: todayH - birthH with proper month/day borrowing based on Umm al-Qura month lengths
     let years = todayH.y - birthH.y;
     let months = todayH.m - birthH.m;
     let days = todayH.d - birthH.d;
 
     if (days < 0) {
         months--;
-        // borrow from previous Hijri month (relative to todayH)
         let prevM = todayH.m - 1;
         let prevY = todayH.y;
         if (prevM === 0) { prevM = 12; prevY--; }
@@ -270,11 +412,9 @@ function diffHijriDates_Umalqura(birthH, todayH) {
         months += 12;
     }
 
-    // If birth date in future (shouldn't happen), clamp
     if (years < 0) years = 0;
     if (months < 0) months = 0;
     if (days < 0) days = 0;
 
     return { years, months, days };
 }
-
