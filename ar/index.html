@@ -20,6 +20,20 @@
     <div class="container">
         <h1>حاسبة العمر</h1>
 
+        
+        <div class="cal-switch" role="group" aria-label="نوع التقويم">
+            <label>
+            <input type="radio" name="calendarType" value="gregorian" checked>
+                الميلادي
+            </label>
+            
+            <label>
+                <input type="radio" name="calendarType" value="hijri">
+                الهجري
+            </label>
+        </div>
+
+        
         <div class="date-group">
             <div>
                 <label>اليوم</label>
@@ -44,7 +58,10 @@
             تحسب هذه الأداة العمر اعتمادًا على تاريخ الميلاد، وتعرض النتيجة بالسنوات والأشهر والأيام.
         </p>
 
+        
+        <p class="note">يعتمد الحساب الهجري على تقويم أم القرى.</p>
 
+        
         <a class="lang" href="../en/index.html">🌍 English</a>
 
         <div class="links">
@@ -58,4 +75,5 @@
     <script src="../script.js"></script>
 </body>
 </html>
+
 
