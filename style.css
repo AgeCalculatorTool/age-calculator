@@ -1,0 +1,91 @@
+﻿body {
+    font-family: Arial, Tahoma, sans-serif;
+    background: linear-gradient(135deg, #eef2f3, #dfe9f3);
+    padding: 40px 10px;
+}
+
+.container {
+    background: #ffffff;
+    max-width: 420px;
+    margin: auto;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.date-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+    .date-group div {
+        flex: 1;
+        text-align: start;
+    }
+
+label {
+    font-size: 14px;
+    margin-bottom: 4px;
+    display: block;
+}
+
+select, button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+}
+
+button {
+    margin-top: 15px;
+    background-color: #4a6cf7;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+    button:hover {
+        background-color: #3b5be3;
+    }
+
+#result {
+    margin-top: 20px;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.lang {
+    display: block;
+    margin-top: 15px;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.seo-text {
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444;
+    text-align: start;
+}
+
+.links {
+    margin-top: 18px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+    .links a {
+        font-size: 14px;
+        text-decoration: none;
+    }
