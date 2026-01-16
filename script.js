@@ -49,18 +49,30 @@ const HIJRI_MONTHS_AR = [
     "رمضان","شوال","ذو القعدة","ذو الحجة"
 ];
 
+const HIJRI_MONTHS_EN = [
+    "Muharram", "Safar", "Rabi' al-Awwal", "Rabi' al-Thani",
+    "Jumada al-Ula", "Jumada al-Akhirah", "Rajab", "Sha'ban",
+    "Ramadan", "Shawwal", "Dhu al-Qi'dah", "Dhu al-Hijjah"
+];
+
 function getMonthLabel(monthNumber) {
     const lang = document.documentElement.lang;
 
     if (currentCalendar === "hijri") {
-        // Arabic only in your plan, but keep safe:
-        const name = (lang === "ar") ? HIJRI_MONTHS_AR[monthNumber - 1] : String(monthNumber);
+        const name = (lang === "ar")
+            ? HIJRI_MONTHS_AR[monthNumber - 1]
+            : HIJRI_MONTHS_EN[monthNumber - 1];
+
         return `${monthNumber} - ${name}`;
     } else {
-        const name = (lang === "ar") ? GREG_MONTHS_AR[monthNumber - 1] : GREG_MONTHS_EN[monthNumber - 1];
+        const name = (lang === "ar")
+            ? GREG_MONTHS_AR[monthNumber - 1]
+            : GREG_MONTHS_EN[monthNumber - 1];
+
         return `${monthNumber} - ${name}`;
     }
 }
+
 
 /* =============================
    Select fills
@@ -293,6 +305,9 @@ function calculateAge() {
         }
     };
 
+    // ✅ Separator based on language
+    const sep = (lang === "ar") ? "، " : ", ";
+
     // 1) Convert selected date to a real Gregorian Date object
     let birthGregorian = null;
 
@@ -353,18 +368,17 @@ function calculateAge() {
         const ageH = diffHijriDates_Umalqura(birthH, todayH);
 
         result.innerText =
-            `${ageH.years} ${text[lang].years}، ${ageH.months} ${text[lang].months}، ${ageH.days} ${text[lang].days}`;
+            `${ageH.years} ${text[lang].years}${sep}${ageH.months} ${text[lang].months}${sep}${ageH.days} ${text[lang].days}`;
     } else {
         result.innerText =
-            `${years} ${text[lang].years}، ${months} ${text[lang].months}، ${days} ${text[lang].days}`;
+            `${years} ${text[lang].years}${sep}${months} ${text[lang].months}${sep}${days} ${text[lang].days}`;
     }
 
     // 3) Extra details
     if (details) {
-            const birthWeekdayStr = formatWeekday(birthGregorian);
-            const birthGregStr = formatGregorianFull(birthGregorian);
-            const birthHijriStr = formatHijriFromGregorian(birthGregorian);
-
+        const birthWeekdayStr = formatWeekday(birthGregorian);
+        const birthGregStr = formatGregorianFull(birthGregorian);
+        const birthHijriStr = formatHijriFromGregorian(birthGregorian);
 
         // Next anniversary depending on selected calendar
         let nextAnnivDate = null;
@@ -412,7 +426,6 @@ function calculateAge() {
             const daysLeftNumber = daysBetweenDatesUTC(today, nextAnnivDate);
             daysLeft = (lang === "ar") ? `${daysLeftNumber} يومًا` : `${daysLeftNumber} Days`;
             annivStr = formatGregorianFull(nextAnnivDate);
-
         } else {
             daysLeft = (lang === "ar") ? "غير متاح" : "N/A";
             annivStr = (lang === "ar") ? "غير متاح" : "N/A";
@@ -457,4 +470,5 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
 
