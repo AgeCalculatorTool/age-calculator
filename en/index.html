@@ -26,6 +26,21 @@
 
         <label for="birthdate">Birthdate:</label>
 
+        <div class="cal-switch" role="group" aria-label="Calendar type">
+          <label>
+            <input type="radio" name="calendarType" value="gregorian" checked>
+            Gregorian
+          </label>
+
+          <label>
+            <input type="radio" name="calendarType" value="hijri">
+            Hijri
+          </label>
+        </div>
+
+        <p class="note">Hijri calculation uses the Umm al-Qura calendar.</p>
+
+
         <div class="date-group">
             <div>
                 <label>Day</label>
@@ -68,4 +83,5 @@
 </body>
 
 </html>
+
 
