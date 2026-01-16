@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Age Calculator</title>
+
+    <script>
+        (function () {
+            // Default: English. If user's browser language is Arabic, go to Arabic.
+            const lang = (navigator.language || "").toLowerCase();
+            const target = lang.startsWith("ar") ? "ar/" : "en/";
+            window.location.replace(target);
+        })();
+    </script>
+
+    <noscript>
+        <meta http-equiv="refresh" content="0; url=en/" />
+    </noscript>
+</head>
+<body>
+    <p>
+        Redirecting...
+        <a href="en/">English</a> |
+        <a href="ar/">العربية</a>
+    </p>
+</body>
+</html>
