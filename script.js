@@ -194,20 +194,56 @@ function getDaysInHijriMonth_Umalqura(hm, hy) {
    Formatting helpers
    ============================= */
 
-function formatGregorian(dateObj) {
+function formatWeekday(dateObj) {
     const lang = document.documentElement.lang;
     const locale = (lang === "ar") ? "ar" : "en";
-    return new Intl.DateTimeFormat(locale, {
+    return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(dateObj);
+}
+
+function formatGregorianDate(dateObj) {
+    const lang = document.documentElement.lang;
+    const locale = (lang === "ar") ? "ar" : "en";
+
+    const txt = new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    }).format(dateObj);
+
+    // Add era suffix in Arabic style
+    return (lang === "ar") ? (txt + " م") : txt;
+}
+
+function formatGregorianFull(dateObj) {
+    // Weekday + full date
+    const lang = document.documentElement.lang;
+    const locale = (lang === "ar") ? "ar" : "en";
+
+    const txt = new Intl.DateTimeFormat(locale, {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric"
     }).format(dateObj);
+
+    return (lang === "ar") ? (txt + " م") : txt;
 }
 
 function formatHijriFromGregorian(dateObj) {
-    // Uses Umm al-Qura calendar for display (Arabic output)
-    // We show it in Arabic because feature is in Arabic page primarily.
+    const lang = document.documentElement.lang;
+
+    // English hijri in English words + latin digits
+    if (lang === "en") {
+        const fmt = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        });
+        return fmt.format(dateObj);
+    }
+
+    // Arabic hijri (Umm al-Qura)
     const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
         weekday: "long",
         year: "numeric",
@@ -325,9 +361,10 @@ function calculateAge() {
 
     // 3) Extra details
     if (details) {
-        const birthWeekdayStr = formatGregorian(birthGregorian).split("،")[0]; // weekday part
-        const birthGregStr = formatGregorian(birthGregorian);
-        const birthHijriStr = formatHijriFromGregorian(birthGregorian);
+            const birthWeekdayStr = formatWeekday(birthGregorian);
+            const birthGregStr = formatGregorianFull(birthGregorian);
+            const birthHijriStr = formatHijriFromGregorian(birthGregorian);
+
 
         // Next anniversary depending on selected calendar
         let nextAnnivDate = null;
@@ -372,8 +409,10 @@ function calculateAge() {
         let daysLeft = "";
         let annivStr = "";
         if (nextAnnivDate) {
-            daysLeft = String(daysBetweenDatesUTC(today, nextAnnivDate));
-            annivStr = formatGregorian(nextAnnivDate);
+            const daysLeftNumber = daysBetweenDatesUTC(today, nextAnnivDate);
+            daysLeft = (lang === "ar") ? `${daysLeftNumber} يومًا` : `${daysLeftNumber} Days`;
+            annivStr = formatGregorianFull(nextAnnivDate);
+
         } else {
             daysLeft = (lang === "ar") ? "غير متاح" : "N/A";
             annivStr = (lang === "ar") ? "غير متاح" : "N/A";
@@ -418,3 +457,4 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
