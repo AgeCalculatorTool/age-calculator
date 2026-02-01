@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://agecalculatortool.github.io/age-calculator/sitemap.xml
