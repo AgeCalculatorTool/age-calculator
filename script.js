@@ -399,7 +399,6 @@ function calculateAge() {
         const birthGregStr = formatGregorianFull(birthGregorian);
         
         let birthHijriStr = "";
-        const birthWeekdayStr = formatWeekday(birthGregorian);
 
         // نحاول أخذ أجزاء الهجري من Intl إذا كان متاحًا (على أجهزة كثيرة سيعمل)
         const hParts = getHijriPartsFromGregorian(
@@ -505,6 +504,7 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
 
 
 
