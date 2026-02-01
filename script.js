@@ -11,6 +11,17 @@ window.onload = function () {
         });
     }
 
+    // Convert Arabic-Indic / Eastern Arabic digits to 0-9 (for iOS/Safari issues)
+function normalizeDigitsToAscii(str) {
+    return String(str)
+        .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))   // Arabic-Indic
+        .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));  // Eastern Arabic-Indic
+}
+
+function hasHijriDateLib() {
+    return (typeof HijriDate === "function") && (typeof Date.prototype.toHijri === "function");
+}
+
     initSelectsForCurrentCalendar(false);
 
     document.getElementById("month").addEventListener("change", updateDays);
@@ -85,12 +96,15 @@ function fillYears(resetToDefaults) {
     const today = new Date();
 
     if (currentCalendar === "hijri") {
-        if (!isUmalquraSupported()) {
-            document.getElementById("result").innerText =
-                "متصفحك لا يدعم تقويم أم القرى. يُرجى استخدام Chrome/Edge حديث.";
+        if (!isUmalquraSupported() && !hasHijriDateLib()) {
+            document.getElementById("result").innerText = 
+                (document.documentElement.lang === "ar")
+                ? "الهجري غير مدعوم على هذا المتصفح. جرّب Chrome/Edge أو سنفعّل دعمًا إضافيًا."
+                : "Hijri is not supported on this browser. Try Chrome/Edge (or we can enable extra support).";
             currentCalendar = "gregorian";
         }
     }
+
 
     if (currentCalendar === "gregorian") {
         const currentYear = today.getFullYear();
@@ -147,17 +161,28 @@ function getDaysInGregorianMonth(month, year) {
    Umm al-Qura (Hijri) via Intl
    ============================= */
 
+// IMPORTANT: real check, because some browsers fallback silently
 function isUmalquraSupported() {
     try {
-        new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", { timeZone: "UTC" }).format(new Date());
-        return true;
+        const fmt = new Intl.DateTimeFormat("en-SA-u-ca-islamic-umalqura", { year: "numeric", timeZone: "UTC" });
+        return fmt.resolvedOptions().calendar === "islamic-umalqura";
     } catch {
         return false;
     }
 }
 
+
 function getHijriPartsFromGregorian(gDate) {
-    const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", {
+    // 1) Preferred fallback for iPhone: HijriDate library (if added)
+    if (hasHijriDateLib()) {
+        const h = new Date(gDate.getTime()).toHijri();
+        return { y: h.getFullYear(), m: h.getMonth() + 1, d: h.getDate() };
+    }
+
+    // 2) Intl Umm al-Qura if truly supported
+    if (!isUmalquraSupported()) return null;
+
+    const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
         year: "numeric",
         month: "numeric",
         day: "numeric",
@@ -165,14 +190,32 @@ function getHijriPartsFromGregorian(gDate) {
     });
 
     const parts = fmt.formatToParts(gDate);
-    const y = parseInt(parts.find(p => p.type === "year").value, 10);
-    const m = parseInt(parts.find(p => p.type === "month").value, 10);
-    const d = parseInt(parts.find(p => p.type === "day").value, 10);
 
+    const yStr = parts.find(p => p.type === "year")?.value;
+    const mStr = parts.find(p => p.type === "month")?.value;
+    const dStr = parts.find(p => p.type === "day")?.value;
+
+    const y = parseInt(normalizeDigitsToAscii(yStr), 10);
+    const m = parseInt(normalizeDigitsToAscii(mStr), 10);
+    const d = parseInt(normalizeDigitsToAscii(dStr), 10);
+
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
     return { y, m, d };
 }
 
+
 function hijriToGregorian_Umalqura(hy, hm, hd) {
+    // 1) Preferred fallback for iPhone: HijriDate library
+    if (hasHijriDateLib()) {
+        try {
+            const hdObj = new HijriDate(hy, hm, hd);
+            const g = hdObj.toGregorian(); // returns Date
+            if (g instanceof Date && !isNaN(g.getTime())) return new Date(Date.UTC(g.getFullYear(), g.getMonth(), g.getDate()));
+        } catch {}
+        return null;
+    }
+
+    // 2) Intl method if truly supported
     if (!isUmalquraSupported()) return null;
 
     const estimateGy = hy + 579;
@@ -181,12 +224,13 @@ function hijriToGregorian_Umalqura(hy, hm, hd) {
     for (let i = 0; i < 900; i++) {
         const candidate = new Date(start.getTime() + i * 86400000);
         const h = getHijriPartsFromGregorian(candidate);
-        if (h.y === hy && h.m === hm && h.d === hd) {
+        if (h && h.y === hy && h.m === hm && h.d === hd) {
             return candidate; // UTC date
         }
     }
     return null;
 }
+
 
 function getDaysInHijriMonth_Umalqura(hm, hy) {
     const g1 = hijriToGregorian_Umalqura(hy, hm, 1);
@@ -504,6 +548,7 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
 
 
 
