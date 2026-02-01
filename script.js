@@ -113,8 +113,22 @@ function fillYears(resetToDefaults) {
         }
         if (resetToDefaults) yearSel.value = String(currentYear);
     } else {
-        const h = getHijriPartsFromGregorian(today);
+        const h = getHijriPartsFromGregorian(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())));
+        if (!h) {
+            // إذا فشل الهجري لأي سبب، لا نكسر الموقع
+            document.getElementById("result").innerText =
+                (document.documentElement.lang === "ar")
+                ? "الهجري غير متاح على هذا المتصفح حاليًا."
+                : "Hijri is not available on this browser right now.";
+            currentCalendar = "gregorian";
+            // أكمل كـ gregorian
+            const currentYear = today.getFullYear();
+            for (let y = currentYear; y >= 1900; y--) yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+            if (resetToDefaults) yearSel.value = String(currentYear);
+            return;
+        }
         const currentHijriYear = h.y;
+
 
         for (let y = currentHijriYear; y >= 1300; y--) {
             yearSel.innerHTML += `<option value="${y}">${y}</option>`;
@@ -164,22 +178,25 @@ function getDaysInGregorianMonth(month, year) {
 // IMPORTANT: real check, because some browsers fallback silently
 function isUmalquraSupported() {
     try {
-        const fmt = new Intl.DateTimeFormat("en-SA-u-ca-islamic-umalqura", { year: "numeric", timeZone: "UTC" });
-        return fmt.resolvedOptions().calendar === "islamic-umalqura";
+        const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", { timeZone: "UTC", year: "numeric" });
+        // بعض المتصفحات "تقبل" لكن ترجع تقويم مختلف؛ هذا فحص أدق
+        const cal = fmt.resolvedOptions().calendar;
+        return cal === "islamic-umalqura" || cal === "islamic";
     } catch {
         return false;
     }
 }
 
 
+
 function getHijriPartsFromGregorian(gDate) {
-    // 1) Preferred fallback for iPhone: HijriDate library (if added)
+    // 1) Prefer hijri-date library (fixes iPhone)
     if (hasHijriDateLib()) {
         const h = new Date(gDate.getTime()).toHijri();
         return { y: h.getFullYear(), m: h.getMonth() + 1, d: h.getDate() };
     }
 
-    // 2) Intl Umm al-Qura if truly supported
+    // 2) Fallback to Intl if available
     if (!isUmalquraSupported()) return null;
 
     const fmt = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
@@ -205,17 +222,19 @@ function getHijriPartsFromGregorian(gDate) {
 
 
 function hijriToGregorian_Umalqura(hy, hm, hd) {
-    // 1) Preferred fallback for iPhone: HijriDate library
+    // 1) Prefer hijri-date library (fixes iPhone)
     if (hasHijriDateLib()) {
         try {
             const hdObj = new HijriDate(hy, hm, hd);
-            const g = hdObj.toGregorian(); // returns Date
-            if (g instanceof Date && !isNaN(g.getTime())) return new Date(Date.UTC(g.getFullYear(), g.getMonth(), g.getDate()));
+            const g = hdObj.toGregorian(); // Date
+            if (g instanceof Date && !isNaN(g.getTime())) {
+                return new Date(Date.UTC(g.getFullYear(), g.getMonth(), g.getDate()));
+            }
         } catch {}
         return null;
     }
 
-    // 2) Intl method if truly supported
+    // 2) Intl brute-force fallback
     if (!isUmalquraSupported()) return null;
 
     const estimateGy = hy + 579;
@@ -225,7 +244,7 @@ function hijriToGregorian_Umalqura(hy, hm, hd) {
         const candidate = new Date(start.getTime() + i * 86400000);
         const h = getHijriPartsFromGregorian(candidate);
         if (h && h.y === hy && h.m === hm && h.d === hd) {
-            return candidate; // UTC date
+            return candidate;
         }
     }
     return null;
@@ -548,6 +567,7 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
 
 
 
