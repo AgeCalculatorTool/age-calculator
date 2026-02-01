@@ -271,6 +271,25 @@ function daysBetweenDatesUTC(dateA, dateB) {
     return Math.round((b - a) / 86400000);
 }
 
+function formatHijriManual(parts, lang) {
+  const hijriMonthsAr = [
+    "محرم","صفر","ربيع الأول","ربيع الآخر","جمادى الأولى","جمادى الآخرة",
+    "رجب","شعبان","رمضان","شوال","ذو القعدة","ذو الحجة"
+  ];
+  const hijriMonthsEn = [
+    "Muharram","Safar","Rabi' al-Awwal","Rabi' al-Thani","Jumada al-Ula","Jumada al-Akhirah",
+    "Rajab","Sha'ban","Ramadan","Shawwal","Dhu al-Qi'dah","Dhu al-Hijjah"
+  ];
+
+  const name = (lang === "ar") ? hijriMonthsAr[parts.m - 1] : hijriMonthsEn[parts.m - 1];
+  const suffix = (lang === "ar") ? " هـ" : " AH";
+
+  return (lang === "ar")
+    ? `${parts.d} ${name} ${parts.y}${suffix}`
+    : `${name} ${parts.d}, ${parts.y}${suffix}`;
+}
+
+
 /* =============================
    Age calculation + extra details
    ============================= */
@@ -378,7 +397,23 @@ function calculateAge() {
     if (details) {
         const birthWeekdayStr = formatWeekday(birthGregorian);
         const birthGregStr = formatGregorianFull(birthGregorian);
-        const birthHijriStr = formatHijriFromGregorian(birthGregorian);
+        // const birthHijriStr = formatHijriFromGregorian(birthGregorian);
+        let birthHijriStr = "";
+        const birthWeekdayStr = formatWeekday(birthGregorian);
+
+        // نحاول أخذ أجزاء الهجري من Intl إذا كان متاحًا (على أجهزة كثيرة سيعمل)
+        const hParts = getHijriPartsFromGregorian(
+            new Date(Date.UTC(birthGregorian.getFullYear(), birthGregorian.getMonth(), birthGregorian.getDate()))
+        );
+
+        if (hParts) {
+            // نعرض الهجري يدويًا + يوم الأسبوع من الميلادي
+            birthHijriStr = `${birthWeekdayStr}, ${formatHijriManual(hParts, lang)}`;
+        } else {
+            // إذا فشل، لا نعرض تاريخًا مضللًا
+            birthHijriStr = (lang === "ar") ? "غير متاح على هذا المتصفح" : "Not available on this browser";
+        }
+
 
         // Next anniversary depending on selected calendar
         let nextAnnivDate = null;
@@ -470,5 +505,6 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
 
 
