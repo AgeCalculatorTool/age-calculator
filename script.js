@@ -1,5 +1,16 @@
 let currentCalendar = "gregorian"; // default
 
+// ✅ لازم تكون هنا (خارج window.onload)
+function normalizeDigitsToAscii(str) {
+    return String(str)
+        .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+        .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+}
+
+function hasHijriDateLib() {
+    return (typeof HijriDate === "function") && (typeof Date.prototype.toHijri === "function");
+}
+
 window.onload = function () {
     const radios = document.querySelectorAll('input[name="calendarType"]');
     if (radios.length) {
@@ -11,22 +22,12 @@ window.onload = function () {
         });
     }
 
-    // Convert Arabic-Indic / Eastern Arabic digits to 0-9 (for iOS/Safari issues)
-function normalizeDigitsToAscii(str) {
-    return String(str)
-        .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))   // Arabic-Indic
-        .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));  // Eastern Arabic-Indic
-}
-
-function hasHijriDateLib() {
-    return (typeof HijriDate === "function") && (typeof Date.prototype.toHijri === "function");
-}
-
     initSelectsForCurrentCalendar(false);
 
     document.getElementById("month").addEventListener("change", updateDays);
     document.getElementById("year").addEventListener("change", updateDays);
 };
+
 
 function initSelectsForCurrentCalendar(resetToDefaults) {
     fillYears(resetToDefaults);
@@ -438,8 +439,10 @@ function calculateAge() {
 
     // If Hijri mode: show Hijri age parts (Umm al-Qura) in result line
     if (currentCalendar === "hijri") {
-        if (!isUmalquraSupported()) {
-            result.innerText = "متصفحك لا يدعم تقويم أم القرى. يُرجى استخدام Chrome/Edge حديث.";
+        if (!isUmalquraSupported() && !hasHijriDateLib()) {
+            result.innerText = (lang === "ar")
+                ? "متصفحك لا يدعم تقويم أم القرى."
+                : "Your browser does not support Umm al-Qura calendar.";
             if (details) { details.style.display = "none"; details.innerHTML = ""; }
             return;
         }
@@ -451,10 +454,8 @@ function calculateAge() {
 
         result.innerText =
             `${ageH.years} ${text[lang].years}${sep}${ageH.months} ${text[lang].months}${sep}${ageH.days} ${text[lang].days}`;
-    } else {
-        result.innerText =
-            `${years} ${text[lang].years}${sep}${months} ${text[lang].months}${sep}${days} ${text[lang].days}`;
     }
+
 
     // 3) Extra details
     if (details) {
@@ -567,6 +568,7 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
 
 
 
