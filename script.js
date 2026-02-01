@@ -397,7 +397,7 @@ function calculateAge() {
     if (details) {
         const birthWeekdayStr = formatWeekday(birthGregorian);
         const birthGregStr = formatGregorianFull(birthGregorian);
-        // const birthHijriStr = formatHijriFromGregorian(birthGregorian);
+        
         let birthHijriStr = "";
         const birthWeekdayStr = formatWeekday(birthGregorian);
 
@@ -505,6 +505,7 @@ function diffHijriDates_Umalqura(birthH, todayH) {
 
     return { years, months, days };
 }
+
 
 
 
